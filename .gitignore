@@ -43,3 +43,16 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Project plan (not for commit)
+plan.md
+
+# iOS (not used - Android only)
+**/ios/
+ios/
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.app
+*.xcworkspace
+xcuserdata/
