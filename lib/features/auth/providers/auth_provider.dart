@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/firestore_constants.dart';
 import '../models/app_user.dart';
 
 enum AuthStatus { uninitialized, authenticated, unauthenticated }
@@ -45,10 +47,35 @@ final class AuthNotifier extends Notifier<AuthState> {
     return const AuthState();
   }
 
-  void _onAuthChanged(User? firebaseUser) {
+  Future<void> _onAuthChanged(User? firebaseUser) async {
     if (firebaseUser == null) {
       state = const AuthState(status: AuthStatus.unauthenticated);
-    } else {
+      return;
+    }
+
+    state = state.copyWith(isLoading: true);
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection(FirestoreConstants.usersCollection)
+          .doc(firebaseUser.uid)
+          .get();
+
+      if (doc.exists) {
+        final user = AppUser.fromMap(firebaseUser.uid, doc.data()!);
+        state = AuthState(status: AuthStatus.authenticated, user: user);
+      } else {
+        final newUser = AppUser(
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+        );
+        await FirebaseFirestore.instance
+            .collection(FirestoreConstants.usersCollection)
+            .doc(firebaseUser.uid)
+            .set(newUser.toMap());
+        state = AuthState(status: AuthStatus.authenticated, user: newUser);
+      }
+    } catch (e) {
       state = AuthState(
         status: AuthStatus.authenticated,
         user: AppUser.fromFirebase(firebaseUser),
@@ -56,13 +83,29 @@ final class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
-  Future<void> registerWithEmail(String email, String password) async {
+  Future<void> registerWithEmail({
+    required String email,
+    required String password,
+    required String fullname,
+    required String username,
+  }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
+
+      await FirebaseFirestore.instance
+          .collection(FirestoreConstants.usersCollection)
+          .doc(cred.user!.uid)
+          .set(AppUser(
+            uid: cred.user!.uid,
+            email: email,
+            displayName: fullname,
+            username: username,
+          ).toMap());
+
       await FirebaseAuth.instance.signOut();
     } on FirebaseAuthException catch (e) {
       state = state.copyWith(isLoading: false, error: _mapAuthError(e));
@@ -87,6 +130,25 @@ final class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> logout() async {
     await FirebaseAuth.instance.signOut();
+  }
+
+  Future<void> updateUserInFirestore(Map<String, dynamic> updates) async {
+    final currentUser = state.user;
+    if (currentUser == null) return;
+
+    await FirebaseFirestore.instance
+        .collection(FirestoreConstants.usersCollection)
+        .doc(currentUser.uid)
+        .update(updates);
+
+    final doc = await FirebaseFirestore.instance
+        .collection(FirestoreConstants.usersCollection)
+        .doc(currentUser.uid)
+        .get();
+
+    if (doc.exists) {
+      state = state.copyWith(user: AppUser.fromMap(currentUser.uid, doc.data()!));
+    }
   }
 
   void clearError() {

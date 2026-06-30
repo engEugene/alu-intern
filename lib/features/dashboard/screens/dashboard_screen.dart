@@ -37,7 +37,7 @@ final class DashboardScreen extends ConsumerWidget {
               Text('Welcome!', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 8),
               Text(
-                user?.email ?? 'Signed in',
+                user?.displayName ?? 'Signed in',
                 style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 32),

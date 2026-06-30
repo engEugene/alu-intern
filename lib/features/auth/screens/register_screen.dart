@@ -13,6 +13,8 @@ final class RegisterScreen extends ConsumerStatefulWidget {
 
 final class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _fullnameCtl = TextEditingController();
+  final _usernameCtl = TextEditingController();
   final _emailCtl = TextEditingController();
   final _passwordCtl = TextEditingController();
   final _confirmCtl = TextEditingController();
@@ -20,6 +22,8 @@ final class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   void dispose() {
+    _fullnameCtl.dispose();
+    _usernameCtl.dispose();
     _emailCtl.dispose();
     _passwordCtl.dispose();
     _confirmCtl.dispose();
@@ -29,8 +33,10 @@ final class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
     ref.read(authProvider.notifier).registerWithEmail(
-      _emailCtl.text.trim(),
-      _passwordCtl.text,
+      email: _emailCtl.text.trim(),
+      password: _passwordCtl.text,
+      fullname: _fullnameCtl.text.trim(),
+      username: _usernameCtl.text.trim(),
     );
   }
 
@@ -64,6 +70,30 @@ final class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   const SizedBox(height: 16),
                   Text('Create Account', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 32),
+                  TextFormField(
+                    controller: _fullnameCtl,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(labelText: 'Full Name', prefixIcon: Icon(Icons.person_outlined)),
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return 'Enter your full name';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _usernameCtl,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Username',
+                      prefixIcon: Icon(Icons.alternate_email),
+                    ),
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return 'Choose a username';
+                      if (v.trim().length < 3) return 'Username must be at least 3 characters';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
                   TextFormField(
                     controller: _emailCtl,
                     keyboardType: TextInputType.emailAddress,
