@@ -26,8 +26,8 @@ final class VentureConnect extends ConsumerWidget {
     return MaterialApp.router(
       title: 'VentureConnect',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      routerConfig: router,
+      theme: AppTheme.dark,
+      routerConfig: router, 
     );
   }
 }

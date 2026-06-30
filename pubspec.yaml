@@ -50,6 +50,9 @@ dependencies:
   # Environment Variables
   flutter_dotenv: ^5.2.1
 
+  # Design System
+  google_fonts: ^6.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
