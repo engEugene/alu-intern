@@ -63,6 +63,7 @@ final class AuthNotifier extends Notifier<AuthState> {
         email: email,
         password: password,
       );
+      await FirebaseAuth.instance.signOut();
     } on FirebaseAuthException catch (e) {
       state = state.copyWith(isLoading: false, error: _mapAuthError(e));
     } catch (e) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../providers/auth_provider.dart';
 
@@ -39,10 +40,11 @@ final class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final theme = Theme.of(context);
 
     ref.listen(authProvider, (_, next) {
-      if (next.error != null) {
+      final error = next.error;
+      if (error != null) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(next.error!)));
+          ..showSnackBar(SnackBar(content: Text(error)));
         ref.read(authProvider.notifier).clearError();
       }
     });
@@ -117,6 +119,11 @@ final class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                           : const Text('Register'),
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () => context.go('/login'),
+                    child: const Text('Already have an account? Sign in'),
                   ),
                 ],
               ),

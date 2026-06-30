@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../providers/auth_provider.dart';
-import 'register_screen.dart';
 
 final class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -38,10 +38,11 @@ final class _LoginScreenState extends ConsumerState<LoginScreen> {
     final theme = Theme.of(context);
 
     ref.listen(authProvider, (_, next) {
-      if (next.error != null) {
+      final error = next.error;
+      if (error != null) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(next.error!)));
+          ..showSnackBar(SnackBar(content: Text(error)));
         ref.read(authProvider.notifier).clearError();
       }
     });
@@ -105,9 +106,7 @@ final class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                    ),
+                    onPressed: () => context.go('/register'),
                     child: const Text("Don't have an account? Register"),
                   ),
                 ],
