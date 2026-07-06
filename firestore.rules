@@ -21,11 +21,11 @@ service cloud.firestore {
 
     match /applications/{applicationId} {
       allow read: if request.auth != null
-        && (request.auth.uid == resource.data.userId
+        && (request.auth.uid == resource.data.studentId
           || request.auth.uid == resource.data.ownerId);
       allow create: if request.auth != null;
       allow update: if request.auth != null
-        && (request.auth.uid == resource.data.userId
+        && (request.auth.uid == resource.data.studentId
           || request.auth.uid == resource.data.ownerId);
     }
 

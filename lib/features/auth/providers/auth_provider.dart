@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/firestore_constants.dart';
 import '../models/app_user.dart';
 
+export '../models/app_user.dart';
+
 enum AuthStatus { uninitialized, authenticated, unauthenticated }
 
 final class AuthState {

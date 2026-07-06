@@ -10,6 +10,8 @@ final class AppUser {
   final String? username;
   final String? photoUrl;
   final UserRole role;
+  final List<String> skills;
+  final bool onboardingComplete;
   final DateTime? createdAt;
 
   const AppUser({
@@ -19,6 +21,8 @@ final class AppUser {
     this.username,
     this.photoUrl,
     this.role = UserRole.student,
+    this.skills = const [],
+    this.onboardingComplete = false,
     this.createdAt,
   });
 
@@ -45,6 +49,8 @@ final class AppUser {
         (r) => r.name == map['role'],
         orElse: () => UserRole.student,
       ),
+      skills: List<String>.from(map['skills'] as List? ?? []),
+      onboardingComplete: map['onboardingComplete'] as bool? ?? false,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
     );
   }
@@ -56,6 +62,8 @@ final class AppUser {
       'username': username,
       'avatar': photoUrl,
       'role': role.name,
+      'skills': skills,
+      'onboardingComplete': onboardingComplete,
       'createdAt': FieldValue.serverTimestamp(),
     };
   }
