@@ -90,6 +90,7 @@ final class AuthNotifier extends Notifier<AuthState> {
     required String password,
     required String fullname,
     required String username,
+    UserRole role = UserRole.student,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
@@ -106,9 +107,8 @@ final class AuthNotifier extends Notifier<AuthState> {
             email: email,
             displayName: fullname,
             username: username,
+            role: role,
           ).toMap());
-
-      await FirebaseAuth.instance.signOut();
     } on FirebaseAuthException catch (e) {
       state = state.copyWith(isLoading: false, error: _mapAuthError(e));
     } catch (e) {

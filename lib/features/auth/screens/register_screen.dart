@@ -19,6 +19,7 @@ final class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _passwordCtl = TextEditingController();
   final _confirmCtl = TextEditingController();
   bool _obscure = true;
+  UserRole _role = UserRole.student;
 
   @override
   void dispose() {
@@ -37,6 +38,7 @@ final class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       password: _passwordCtl.text,
       fullname: _fullnameCtl.text.trim(),
       username: _usernameCtl.text.trim(),
+      role: _role,
     );
   }
 
@@ -138,6 +140,28 @@ final class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       if (v != _passwordCtl.text) return 'Passwords do not match';
                       return null;
                     },
+                  ),
+                  const SizedBox(height: 24),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('I am signing up as', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                  ),
+                  const SizedBox(height: 8),
+                  SegmentedButton<UserRole>(
+                    segments: const [
+                      ButtonSegment(
+                        value: UserRole.student,
+                        label: Text('Student'),
+                        icon: Icon(Icons.school_outlined),
+                      ),
+                      ButtonSegment(
+                        value: UserRole.startup,
+                        label: Text('Startup'),
+                        icon: Icon(Icons.business_outlined),
+                      ),
+                    ],
+                    selected: {_role},
+                    onSelectionChanged: (selected) => setState(() => _role = selected.first),
                   ),
                   const SizedBox(height: 24),
                   SizedBox(
