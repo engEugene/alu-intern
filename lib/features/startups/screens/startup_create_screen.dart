@@ -20,6 +20,7 @@ final class _StartupCreateScreenState extends ConsumerState<StartupCreateScreen>
   final _nameCtl = TextEditingController();
   final _descCtl = TextEditingController();
   final _websiteCtl = TextEditingController();
+  final _logoCtl = TextEditingController();
   bool _loading = false;
 
   @override
@@ -27,6 +28,7 @@ final class _StartupCreateScreenState extends ConsumerState<StartupCreateScreen>
     _nameCtl.dispose();
     _descCtl.dispose();
     _websiteCtl.dispose();
+    _logoCtl.dispose();
     super.dispose();
   }
 
@@ -37,6 +39,8 @@ final class _StartupCreateScreenState extends ConsumerState<StartupCreateScreen>
       final user = ref.read(authProvider).user;
       if (user == null) return;
 
+      final logoUrl = _logoCtl.text.trim();
+
       final doc = await FirebaseFirestore.instance
           .collection(FirestoreConstants.startupsCollection)
           .add(Startup(
@@ -45,12 +49,16 @@ final class _StartupCreateScreenState extends ConsumerState<StartupCreateScreen>
             name: _nameCtl.text.trim(),
             description: _descCtl.text.trim(),
             website: _websiteCtl.text.trim(),
+            logo: logoUrl.isEmpty ? null : logoUrl,
             members: [user.uid],
           ).toMap());
 
       await ref.read(authProvider.notifier).updateUserInFirestore({
         'role': 'startup',
         'startupId': doc.id,
+        'fullname': _nameCtl.text.trim(),
+        'avatar': logoUrl.isEmpty ? null : logoUrl,
+        'onboardingComplete': true,
       });
 
       if (context.mounted) {
@@ -106,6 +114,17 @@ final class _StartupCreateScreenState extends ConsumerState<StartupCreateScreen>
                     alignLabelWithHint: true,
                   ),
                   validator: (v) => v == null || v.trim().isEmpty ? 'Enter a description' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _logoCtl,
+                  keyboardType: TextInputType.url,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Logo URL (optional)',
+                    prefixIcon: Icon(Icons.image_outlined),
+                    hintText: 'https://example.com/logo.png',
+                  ),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
