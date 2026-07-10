@@ -1,23 +1,23 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../features/auth/providers/auth_provider.dart';
-import '../features/auth/screens/login_screen.dart';
-import '../features/auth/screens/register_screen.dart';
-import '../features/onboarding/screens/skill_selection_screen.dart';
-import '../features/startups/screens/startup_create_screen.dart';
-import '../features/dashboard/screens/startup_dashboard_screen.dart';
-import '../features/home/screens/home_screen.dart';
-import '../features/opportunities/screens/opportunity_list_screen.dart';
-import '../features/opportunities/screens/startup_opportunities_screen.dart';
-import '../features/opportunities/screens/opportunity_detail_screen.dart';
-import '../features/opportunities/screens/opportunity_create_screen.dart';
-import '../features/applications/screens/application_list_screen.dart';
-import '../features/applications/screens/application_create_screen.dart';
-import '../features/applications/screens/application_detail_screen.dart';
-import '../features/bookmarks/screens/bookmark_list_screen.dart';
-import '../features/profile/screens/profile_screen.dart';
-import '../features/admin/screens/verification_screen.dart';
+import '../shared/features/auth/providers/auth_provider.dart';
+import '../shared/features/auth/screens/login_screen.dart';
+import '../shared/features/auth/screens/register_screen.dart';
+import '../student/features/onboarding/screens/skill_selection_screen.dart';
+import '../startup/features/startups/screens/startup_create_screen.dart';
+import '../startup/features/dashboard/screens/startup_dashboard_screen.dart';
+import '../student/features/home/screens/home_screen.dart';
+import '../student/features/opportunities/screens/opportunity_list_screen.dart';
+import '../startup/features/opportunities/screens/startup_opportunities_screen.dart';
+import '../student/features/opportunities/screens/opportunity_detail_screen.dart';
+import '../startup/features/opportunities/screens/opportunity_create_screen.dart';
+import '../student/features/applications/screens/application_list_screen.dart';
+import '../student/features/applications/screens/application_create_screen.dart';
+import '../student/features/applications/screens/application_detail_screen.dart';
+import '../student/features/bookmarks/screens/bookmark_list_screen.dart';
+import '../shared/features/profile/screens/profile_screen.dart';
+import '../shared/features/admin/screens/verification_screen.dart';
 import '../shared/widgets/nav_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
