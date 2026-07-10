@@ -47,8 +47,6 @@ dependencies:
   # State Management
   flutter_riverpod: ^3.3.2
 
-  # Environment Variables
-  flutter_dotenv: ^5.2.1
 
   # Design System
   google_fonts: ^6.2.1
@@ -75,8 +73,6 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  assets:
-    - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

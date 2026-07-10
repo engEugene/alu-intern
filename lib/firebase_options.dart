@@ -1,7 +1,6 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
@@ -41,11 +40,11 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static FirebaseOptions get android => FirebaseOptions(
-        apiKey: dotenv.env['FIREBASE_API_KEY'] ?? '',
-        appId: dotenv.env['FIREBASE_APP_ID'] ?? '',
-        messagingSenderId: dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '',
-        projectId: dotenv.env['FIREBASE_PROJECT_ID'] ?? '',
-        storageBucket: dotenv.env['FIREBASE_STORAGE_BUCKET'] ?? '',
-      );
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyCsCpEv-3oMQsP_KEjNyXgLSxdYLdPJCOE',
+    appId: '1:381716240151:android:b1c1fb5cb87aceca1c4952',
+    messagingSenderId: '381716240151',
+    projectId: 'alu-intern',
+    storageBucket: 'alu-intern.firebasestorage.app',
+  );
 }
