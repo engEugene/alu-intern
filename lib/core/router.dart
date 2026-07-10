@@ -9,10 +9,12 @@ import '../features/startups/screens/startup_create_screen.dart';
 import '../features/dashboard/screens/startup_dashboard_screen.dart';
 import '../features/home/screens/home_screen.dart';
 import '../features/opportunities/screens/opportunity_list_screen.dart';
+import '../features/opportunities/screens/startup_opportunities_screen.dart';
 import '../features/opportunities/screens/opportunity_detail_screen.dart';
 import '../features/opportunities/screens/opportunity_create_screen.dart';
 import '../features/applications/screens/application_list_screen.dart';
 import '../features/applications/screens/application_create_screen.dart';
+import '../features/applications/screens/application_detail_screen.dart';
 import '../features/bookmarks/screens/bookmark_list_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../features/admin/screens/verification_screen.dart';
@@ -38,7 +40,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/';
       }
       if (isLoggedIn && user != null && !user.onboardingComplete && !onboardingRoutes.contains(path)) {
-        return '/onboarding';
+        return switch (user.role) {
+          UserRole.startup => '/startup/onboarding',
+          _ => '/onboarding',
+        };
       }
       return null;
     },
@@ -69,10 +74,16 @@ final routerProvider = Provider<GoRouter>((ref) {
                   };
                 },
                 routes: [
-                  GoRoute(
-                    path: 'opportunities',
-                    builder: (_, __) => const OpportunityListScreen(),
-                    routes: [
+              GoRoute(
+                path: '/opportunities',
+                builder: (_, __) {
+                  final role = authState.user?.role;
+                  return switch (role) {
+                    UserRole.startup => const StartupOpportunitiesScreen(),
+                    _ => const OpportunityListScreen(),
+                  };
+                },
+                routes: [
                       GoRoute(
                         path: 'create',
                         builder: (_, __) => const OpportunityCreateScreen(),
@@ -105,9 +116,18 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (_, __) {
                   final role = authState.user?.role;
                   return switch (role) {
+                    UserRole.startup => const StartupOpportunitiesScreen(),
                     _ => const ApplicationListScreen(),
                   };
                 },
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    builder: (_, state) => ApplicationDetailScreen(
+                      applicationId: state.pathParameters['id']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

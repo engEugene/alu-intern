@@ -38,32 +38,41 @@ final class _ApplicationCreateScreenState extends ConsumerState<ApplicationCreat
       final user = ref.read(authProvider).user;
       if (user == null) return;
 
+      final opportunityDoc = await FirebaseFirestore.instance
+          .collection(FirestoreConstants.opportunitiesCollection)
+          .doc(widget.opportunityId)
+          .get();
+
+      final opportunityData = opportunityDoc.data();
+
       await FirebaseFirestore.instance
           .collection(FirestoreConstants.applicationsCollection)
           .add({
         'studentId': user.uid,
         'studentName': user.displayName,
         'studentEmail': user.email,
+        'startupId': opportunityData?['startupId'],
+        'startupName': opportunityData?['startupName'],
         'opportunityId': widget.opportunityId,
-        'opportunityTitle': widget.opportunityTitle,
+        'opportunityTitle': widget.opportunityTitle.isNotEmpty
+            ? widget.opportunityTitle
+            : opportunityData?['title'] ?? 'Opportunity',
         'coverLetter': _coverCtl.text.trim(),
         'skills': user.skills,
         'status': 'pending',
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(const SnackBar(content: Text('Application submitted!')));
-        context.pop();
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Application submitted!')));
+      context.pop();
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text('Failed to submit: $e')));
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text('Failed to submit: $e')));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

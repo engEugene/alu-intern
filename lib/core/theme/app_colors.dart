@@ -103,11 +103,11 @@ class AppColors {
 
   static (Color bg, Color text) statusColors(String status) {
     return switch (status) {
-      'success' || 'completed' || 'paid' || 'active' || 'settled' => (
+      'success' || 'completed' || 'paid' || 'active' || 'settled' || 'accepted' => (
           successBg,
           successText,
         ),
-      'pending' || 'processing' => (
+      'pending' || 'processing' || 'interview' => (
           pendingBg,
           pendingText,
         ),

@@ -31,16 +31,22 @@ final class _NavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final index = navigationShell.currentIndex;
     final tabs = _tabsForRole(role);
+    final branchIndex = navigationShell.currentIndex;
 
     return Container(
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: AppColors.divider, width: 0.5)),
       ),
       child: BottomNavigationBar(
-        currentIndex: index >= tabs.length ? 0 : index,
-        onTap: (i) => navigationShell.goBranch(i, initialLocation: i == index),
+        currentIndex: _tabIndexForBranch(role, branchIndex),
+        onTap: (tabIndex) {
+          final targetBranch = _branchIndexForTab(role, tabIndex);
+          navigationShell.goBranch(
+            targetBranch,
+            initialLocation: targetBranch == branchIndex,
+          );
+        },
         items: tabs.map((t) => BottomNavigationBarItem(
           icon: Icon(t.icon),
           activeIcon: Icon(t.activeIcon),
@@ -63,7 +69,6 @@ List<_TabItem> _tabsForRole(UserRole role) {
     UserRole.startup => const [
       _TabItem('Dashboard', Icons.dashboard_outlined, Icons.dashboard),
       _TabItem('Opportunities', Icons.work_outline, Icons.work),
-      _TabItem('Applicants', Icons.people_outline, Icons.people),
       _TabItem('Profile', Icons.business_outlined, Icons.business),
     ],
     UserRole.admin => const [
@@ -78,5 +83,24 @@ List<_TabItem> _tabsForRole(UserRole role) {
       _TabItem('Bookmarks', Icons.bookmark_outline, Icons.bookmark),
       _TabItem('Profile', Icons.person_outline, Icons.person),
     ],
+  };
+}
+
+int _branchIndexForTab(UserRole role, int tabIndex) {
+  return switch (role) {
+    UserRole.startup => const [0, 1, 3][tabIndex],
+    _ => tabIndex,
+  };
+}
+
+int _tabIndexForBranch(UserRole role, int branchIndex) {
+  return switch (role) {
+    UserRole.startup => switch (branchIndex) {
+        0 => 0,
+        1 => 1,
+        3 => 2,
+        _ => 0,
+      },
+    _ => branchIndex,
   };
 }

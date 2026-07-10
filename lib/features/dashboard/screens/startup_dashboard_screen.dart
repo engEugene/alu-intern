@@ -8,20 +8,7 @@ import '../../../shared/models/opportunity_model.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../shared/widgets/error_widget.dart';
 import '../../auth/providers/auth_provider.dart';
-
-final startupOpportunitiesProvider = StreamProvider<List<Opportunity>>((ref) {
-  final user = ref.watch(authProvider).user;
-  if (user == null) return const Stream.empty();
-
-  return FirebaseFirestore.instance
-      .collection(FirestoreConstants.opportunitiesCollection)
-      .where('startupId', isEqualTo: user.uid)
-      .orderBy('createdAt', descending: true)
-      .snapshots()
-      .map((snap) => snap.docs
-          .map((doc) => Opportunity.fromMap(doc.id, doc.data()))
-          .toList());
-});
+import '../../opportunities/providers/opportunity_providers.dart';
 
 final startupApplicationCountProvider = StreamProvider<int>((ref) {
   final oppsAsync = ref.watch(startupOpportunitiesProvider);
@@ -88,10 +75,9 @@ final class StartupDashboardScreen extends ConsumerWidget {
                 children: [
                   Text('Your Opportunities', style: AppTextStyles.titleXs),
                   const Spacer(),
-                  TextButton.icon(
-                    onPressed: () => context.push('/opportunities/create'),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Post New'),
+                  TextButton(
+                    onPressed: () => context.push('/applications'),
+                    child: const Text('See all'),
                   ),
                 ],
               ),
@@ -118,8 +104,8 @@ final class StartupDashboardScreen extends ConsumerWidget {
                               style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
                           const SizedBox(height: 16),
                           FilledButton(
-                            onPressed: () => context.push('/opportunities/create'),
-                            child: const Text('Post Opportunity'),
+                            onPressed: () => context.push('/applications'),
+                            child: const Text('Create Job'),
                           ),
                         ],
                       ),
