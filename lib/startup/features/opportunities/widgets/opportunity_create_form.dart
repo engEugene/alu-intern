@@ -7,7 +7,7 @@ import '../../../../core/constants/firestore_constants.dart';
 import '../../../../shared/models/opportunity_model.dart';
 import '../../../../shared/features/auth/providers/auth_provider.dart';
 import '../../../../student/features/onboarding/providers/onboarding_provider.dart';
-import '../../../features/startups/providers/startup_providers.dart';
+import '../../../../shared/models/startup_model.dart';
 
 typedef OpportunitySavedCallback = void Function();
 
@@ -64,6 +64,28 @@ final class _OpportunityCreateFormState extends ConsumerState<OpportunityCreateF
     super.dispose();
   }
 
+  Future<Startup?> _fetchStartup(AppUser user) async {
+    if (user.startupId != null && user.startupId!.isNotEmpty) {
+      final doc = await FirebaseFirestore.instance
+          .collection(FirestoreConstants.startupsCollection)
+          .doc(user.startupId!)
+          .get();
+      if (doc.exists) {
+        return Startup.fromMap(doc.id, doc.data()!);
+      }
+    }
+
+    final result = await FirebaseFirestore.instance
+        .collection(FirestoreConstants.startupsCollection)
+        .where('ownerId', isEqualTo: user.uid)
+        .limit(1)
+        .get();
+    if (result.docs.isNotEmpty) {
+      return Startup.fromMap(result.docs.first.id, result.docs.first.data());
+    }
+    return null;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
@@ -71,7 +93,7 @@ final class _OpportunityCreateFormState extends ConsumerState<OpportunityCreateF
       final user = ref.read(authProvider).user;
       if (user == null) return;
 
-      final startup = await ref.read(currentStartupProvider.future);
+      final startup = await _fetchStartup(user);
       final startupId = startup?.id ?? user.startupId ?? user.uid;
 
       final recruitsText = _recruitsCtl.text.trim();

@@ -8,9 +8,7 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const ProviderScope(child: VentureConnect()));
 }
 
@@ -26,9 +24,6 @@ final class VentureConnect extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
       routerConfig: router,
-      // The theme keeps Scaffolds transparent so the background gradient shows
-      // through. Paint it once here behind every route; without this the app
-      // renders pure black (the Scaffolds have nothing behind them).
       builder: (context, child) {
         return DecoratedBox(
           decoration: BoxDecoration(gradient: AppColors.backgroundGradient),

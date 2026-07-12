@@ -7,16 +7,27 @@ service cloud.firestore {
 
     match /startups/{startupId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if request.auth != null
-        && request.auth.uid == resource.data.ownerId;
+        && request.auth.uid == resource.data.ownerId
+        && (!request.resource.data.keys().hasAny(['ownerId'])
+            || request.resource.data.ownerId == resource.data.ownerId);
     }
 
     match /opportunities/{opportunityId} {
+      function isOpportunityOwner() {
+        return request.auth != null
+          && request.auth.uid == resource.data.ownerId;
+      }
+
       allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null
-        && request.auth.uid == resource.data.ownerId;
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isOpportunityOwner()
+        && (!request.resource.data.keys().hasAny(['ownerId'])
+            || request.resource.data.ownerId == request.auth.uid);
+      allow delete: if isOpportunityOwner();
     }
 
     match /applications/{applicationId} {
