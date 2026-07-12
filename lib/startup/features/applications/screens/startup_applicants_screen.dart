@@ -8,7 +8,10 @@ import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_widget.dart';
 import '../../../../shared/widgets/loading_shimmer.dart';
 import '../../../../shared/features/auth/providers/auth_provider.dart';
+import '../../../../shared/providers/pagination_provider.dart';
 import '../../startups/providers/startup_providers.dart';
+
+final applicantPageLimitProvider = NotifierProvider<PageLimitNotifier, int>(PageLimitNotifier.new);
 
 final startupApplicantsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
   final user = ref.watch(authProvider).user;
@@ -22,6 +25,7 @@ final class StartupApplicantsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final applications = ref.watch(startupApplicantsProvider);
+    final limit = ref.watch(applicantPageLimitProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Applicants')),
@@ -38,12 +42,29 @@ final class StartupApplicantsScreen extends ConsumerWidget {
           }
 
           final grouped = _groupByOpportunity(list);
+          final display = grouped.take(limit).toList();
+          final hasMore = limit < grouped.length;
 
           return ListView.builder(
             padding: AppSpacing.screenPadding,
-            itemCount: grouped.length,
+            itemCount: _totalItemCount(display, hasMore),
             itemBuilder: (_, i) {
-              final section = grouped[i];
+              if (hasMore && _isLastIndex(i, display)) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 12),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        ref.read(applicantPageLimitProvider.notifier).loadMore();
+                      },
+                      child: const Text('Load more'),
+                    ),
+                  ),
+                );
+              }
+
+              final section = display[i];
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -58,6 +79,14 @@ final class StartupApplicantsScreen extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  int _totalItemCount(List<_OpportunitySection> display, bool hasMore) {
+    return display.length + (hasMore ? 1 : 0);
+  }
+
+  bool _isLastIndex(int index, List<_OpportunitySection> display) {
+    return index == display.length;
   }
 
   List<_OpportunitySection> _groupByOpportunity(List<Map<String, dynamic>> list) {

@@ -7,7 +7,7 @@ import '../shared/features/auth/screens/register_screen.dart';
 import '../student/features/onboarding/screens/skill_selection_screen.dart';
 import '../startup/features/startups/screens/startup_create_screen.dart';
 import '../startup/features/dashboard/screens/startup_dashboard_screen.dart';
-import '../student/features/home/screens/home_screen.dart';
+import '../student/features/dashboard/screens/dashboard_screen.dart';
 import '../student/features/opportunities/screens/opportunity_list_screen.dart';
 import '../startup/features/opportunities/screens/startup_opportunities_screen.dart';
 import '../student/features/opportunities/screens/opportunity_detail_screen.dart';
@@ -20,6 +20,7 @@ import '../student/features/bookmarks/screens/bookmark_list_screen.dart';
 import '../shared/features/profile/screens/profile_screen.dart';
 import '../shared/features/admin/screens/verification_screen.dart';
 import '../shared/widgets/nav_shell.dart';
+import '../startup/features/startups/providers/startup_providers.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -59,6 +60,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/startup/onboarding',
         builder: (_, __) => const StartupCreateScreen(),
       ),
+      GoRoute(
+        path: '/startup/edit',
+        builder: (context, _) {
+          final container = ProviderScope.containerOf(context);
+          final startup = container.read(currentStartupProvider).value;
+          return StartupCreateScreen(existingStartup: startup);
+        },
+      ),
       StatefulShellRoute.indexedStack(
         builder: (_, __, navigationShell) => NavShell(navigationShell: navigationShell),
         branches: [
@@ -71,7 +80,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   return switch (role) {
                     UserRole.startup => const StartupDashboardScreen(),
                     UserRole.admin => const VerificationScreen(),
-                    _ => const HomeScreen(),
+                    _ => const DashboardScreen(),
                   };
                 },
                 routes: [

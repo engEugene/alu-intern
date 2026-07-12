@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/theme.dart';
+import '../../../../core/constants/firestore_constants.dart';
+import '../../../../shared/models/opportunity_model.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_widget.dart';
 import '../../../../shared/widgets/loading_shimmer.dart';
 import '../providers/opportunity_providers.dart';
 import '../../../../shared/widgets/opportunity_card.dart';
+import '../../../../shared/providers/pagination_provider.dart';
 import '../widgets/opportunity_create_form.dart';
+
+final startupOppPageLimitProvider = NotifierProvider<PageLimitNotifier, int>(PageLimitNotifier.new);
 
 final class StartupOpportunitiesScreen extends ConsumerWidget {
   const StartupOpportunitiesScreen({super.key});
@@ -16,59 +22,82 @@ final class StartupOpportunitiesScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (sheetContext) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.85,
-          minChildSize: 0.5,
-          maxChildSize: 0.95,
-          expand: false,
-          builder: (_, scrollController) {
-            return Container(
-              decoration: BoxDecoration(
-                color: AppColors.sheetSurface,
-                borderRadius: AppRadius.sheetRadius,
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.only(top: 8, bottom: 4),
-                    child: Container(
-                      width: 40,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: AppColors.divider,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
+      builder: (sheetContext) => _buildSheet(sheetContext, null),
+    );
+  }
+
+  void _showEditSheet(BuildContext context, Opportunity opportunity) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) => _buildSheet(sheetContext, opportunity),
+    );
+  }
+
+  Widget _buildSheet(BuildContext sheetContext, Opportunity? existing) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (_, scrollController) {
+        return Container(
+          decoration: BoxDecoration(
+            color: AppColors.sheetSurface,
+            borderRadius: AppRadius.sheetRadius,
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.only(top: 8, bottom: 4),
+                child: Container(
+                  width: 40, height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(3),
                   ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      controller: scrollController,
-                      padding: AppSpacing.screenPadding.copyWith(
-                        bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
-                      ),
-                      child: OpportunityCreateForm(
-                        onCreated: () {
-                          if (sheetContext.mounted) Navigator.of(sheetContext).pop();
-                        },
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            );
-          },
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: AppSpacing.screenPadding.copyWith(
+                    bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+                  ),
+                  child: OpportunityCreateForm(
+                    existing: existing,
+                    onCreated: () {
+                      if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
+  Future<void> _toggleStatus(Opportunity opportunity) async {
+    final newStatus = opportunity.status == OpportunityStatus.open
+        ? OpportunityStatus.closed
+        : OpportunityStatus.open;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection(FirestoreConstants.opportunitiesCollection)
+          .doc(opportunity.id)
+          .update({'status': newStatus.name});
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final opportunities = ref.watch(startupOpportunitiesProvider);
-    // Counts stream independently; we don't gate the whole screen on it so the
-    // list renders as soon as opportunities resolve and chips fill in live.
     final counts = ref.watch(startupOpportunityApplicantCountsProvider).value ?? const {};
+    final limit = ref.watch(startupOppPageLimitProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Opportunities')),
@@ -120,13 +149,35 @@ final class StartupOpportunitiesScreen extends ConsumerWidget {
                     );
                   }
 
+                  final display = list.take(limit).toList();
+                  final hasMore = limit < list.length;
+
                   return ListView.builder(
                     padding: AppSpacing.screenH,
-                    itemCount: list.length,
-                    itemBuilder: (_, i) => OpportunityCard(
-                      opportunity: list[i],
-                      applicantCount: counts[list[i].id] ?? 0,
-                    ),
+                    itemCount: display.length + (hasMore ? 1 : 0),
+                    itemBuilder: (_, i) {
+                      if (hasMore && i == display.length) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4, bottom: 12),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              onPressed: () {
+                                ref.read(startupOppPageLimitProvider.notifier).loadMore();
+                              },
+                              child: const Text('Load more'),
+                            ),
+                          ),
+                        );
+                      }
+                      final opp = display[i];
+                      return OpportunityCard(
+                        opportunity: opp,
+                        applicantCount: counts[opp.id] ?? 0,
+                        onEdit: () => _showEditSheet(context, opp),
+                        onToggleStatus: () => _toggleStatus(opp),
+                      );
+                    },
                   );
                 },
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/theme.dart';
@@ -8,12 +9,13 @@ import '../../../../shared/features/auth/providers/auth_provider.dart';
 import '../../../../student/features/onboarding/providers/onboarding_provider.dart';
 import '../../../features/startups/providers/startup_providers.dart';
 
-typedef OpportunityCreatedCallback = void Function();
+typedef OpportunitySavedCallback = void Function();
 
 final class OpportunityCreateForm extends ConsumerStatefulWidget {
   final VoidCallback? onCreated;
+  final Opportunity? existing;
 
-  const OpportunityCreateForm({super.key, this.onCreated});
+  const OpportunityCreateForm({super.key, this.onCreated, this.existing});
 
   @override
   ConsumerState<OpportunityCreateForm> createState() => _OpportunityCreateFormState();
@@ -25,6 +27,7 @@ final class _OpportunityCreateFormState extends ConsumerState<OpportunityCreateF
   final _descCtl = TextEditingController();
   final _durationCtl = TextEditingController();
   final _locationCtl = TextEditingController();
+  final _recruitsCtl = TextEditingController();
 
   OpportunityType _type = OpportunityType.internship;
   bool _remote = false;
@@ -32,12 +35,32 @@ final class _OpportunityCreateFormState extends ConsumerState<OpportunityCreateF
   final _selectedSkills = <String>[];
   bool _loading = false;
 
+  bool get _isEditing => widget.existing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final o = widget.existing;
+    if (o != null) {
+      _titleCtl.text = o.title;
+      _descCtl.text = o.description;
+      _durationCtl.text = o.duration ?? '';
+      _locationCtl.text = o.location ?? '';
+      _recruitsCtl.text = o.recruitsRequired?.toString() ?? '';
+      _type = o.type;
+      _remote = o.remote;
+      _deadline = o.deadline;
+      _selectedSkills.addAll(o.skills);
+    }
+  }
+
   @override
   void dispose() {
     _titleCtl.dispose();
     _descCtl.dispose();
     _durationCtl.dispose();
     _locationCtl.dispose();
+    _recruitsCtl.dispose();
     super.dispose();
   }
 
@@ -51,8 +74,11 @@ final class _OpportunityCreateFormState extends ConsumerState<OpportunityCreateF
       final startup = await ref.read(currentStartupProvider.future);
       final startupId = startup?.id ?? user.startupId ?? user.uid;
 
+      final recruitsText = _recruitsCtl.text.trim();
+      final int? recruits = recruitsText.isNotEmpty ? int.tryParse(recruitsText) : null;
+
       final oppMap = Opportunity(
-        id: '',
+        id: _isEditing ? widget.existing!.id : '',
         startupId: startupId,
         startupName: startup?.name ?? user.displayName ?? '',
         startupLogo: startup?.logo ?? user.photoUrl ?? '',
@@ -64,23 +90,34 @@ final class _OpportunityCreateFormState extends ConsumerState<OpportunityCreateF
         remote: _remote,
         skills: _selectedSkills,
         deadline: _deadline,
+        recruitsRequired: recruits,
       ).toMap();
       oppMap['ownerId'] = user.uid;
 
-      await FirebaseFirestore.instance
-          .collection(FirestoreConstants.opportunitiesCollection)
-          .add(oppMap);
+      if (_isEditing) {
+        oppMap.remove('createdAt');
+        await FirebaseFirestore.instance
+            .collection(FirestoreConstants.opportunitiesCollection)
+            .doc(widget.existing!.id)
+            .update(oppMap);
+      } else {
+        await FirebaseFirestore.instance
+            .collection(FirestoreConstants.opportunitiesCollection)
+            .add(oppMap);
+      }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Opportunity posted!')));
+        ..showSnackBar(SnackBar(
+          content: Text(_isEditing ? 'Opportunity updated!' : 'Opportunity posted!'),
+        ));
       widget.onCreated?.call();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('Failed to post: $e')));
+        ..showSnackBar(SnackBar(content: Text('Failed: $e')));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -90,7 +127,7 @@ final class _OpportunityCreateFormState extends ConsumerState<OpportunityCreateF
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: now.add(const Duration(days: 30)),
+      initialDate: _deadline ?? now.add(const Duration(days: 30)),
       firstDate: now,
       lastDate: DateTime(now.year + 2),
     );
@@ -109,10 +146,12 @@ final class _OpportunityCreateFormState extends ConsumerState<OpportunityCreateF
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Create Opportunity', style: AppTextStyles.headingSm),
+          Text(_isEditing ? 'Edit Opportunity' : 'Create Opportunity', style: AppTextStyles.headingSm),
           const SizedBox(height: 8),
-          Text('Post a new internship or role for students',
-              style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
+          Text(
+            _isEditing ? 'Update the details of your posting' : 'Post a new internship or role for students',
+            style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+          ),
           const SizedBox(height: 24),
           TextFormField(
             controller: _titleCtl,
@@ -160,6 +199,23 @@ final class _OpportunityCreateFormState extends ConsumerState<OpportunityCreateF
                   controller: _locationCtl,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(labelText: 'Location'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _recruitsCtl,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Recruits needed',
+                    prefixIcon: Icon(Icons.people_outline),
+                  ),
                 ),
               ),
             ],
@@ -215,7 +271,7 @@ final class _OpportunityCreateFormState extends ConsumerState<OpportunityCreateF
               onPressed: _loading ? null : _submit,
               child: _loading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Post Opportunity'),
+                  : Text(_isEditing ? 'Save Changes' : 'Post Opportunity'),
             ),
           ),
         ],

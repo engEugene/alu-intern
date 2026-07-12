@@ -134,6 +134,7 @@ final class OpportunityDetailScreen extends ConsumerWidget {
         error: (_, __) => null,
         data: (opp) {
           if (opp == null) return const SizedBox.shrink();
+          if (user?.role != UserRole.student) return null;
           return Container(
             padding: AppSpacing.screenPadding.copyWith(top: 12, bottom: 32),
             decoration: BoxDecoration(
@@ -154,10 +155,8 @@ final class OpportunityDetailScreen extends ConsumerWidget {
                       const SizedBox(width: 16),
                       Expanded(
                         child: FilledButton(
-                          onPressed: user?.role.name == 'student'
-                              ? () => context.push('/opportunities/${opp.id}/apply')
-                              : null,
-                          child: Text(user?.role.name == 'student' ? 'Apply Now' : 'Sign in as student to apply'),
+                          onPressed: () => context.push('/opportunities/${opp.id}/apply'),
+                          child: const Text('Apply Now'),
                         ),
                       ),
                     ],

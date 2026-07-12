@@ -19,6 +19,7 @@ final class Opportunity {
   final OpportunityStatus status;
   final DateTime? deadline;
   final DateTime? createdAt;
+  final int? recruitsRequired;
 
   const Opportunity({
     required this.id,
@@ -36,6 +37,7 @@ final class Opportunity {
     this.status = OpportunityStatus.open,
     this.deadline,
     this.createdAt,
+    this.recruitsRequired,
   });
 
   factory Opportunity.fromMap(String id, Map<String, dynamic> map) {
@@ -61,6 +63,7 @@ final class Opportunity {
       ),
       deadline: (map['deadline'] as Timestamp?)?.toDate(),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
+      recruitsRequired: map['recruitsRequired'] as int?,
     );
   }
 
@@ -80,6 +83,7 @@ final class Opportunity {
       'status': status.name,
       'deadline': deadline != null ? Timestamp.fromDate(deadline!) : null,
       'createdAt': FieldValue.serverTimestamp(),
+      'recruitsRequired': recruitsRequired,
     };
   }
 }

@@ -7,12 +7,17 @@ import '../models/opportunity_model.dart';
 
 final class OpportunityCard extends ConsumerWidget {
   final Opportunity opportunity;
-  // When provided (startup context), shows an "Applicants: N" chip on the
-  // card. Null means we're either still loading the count or this card is
-  // rendered from the student context where applicant counts aren't relevant.
   final int? applicantCount;
+  final VoidCallback? onEdit;
+  final VoidCallback? onToggleStatus;
 
-  const OpportunityCard({super.key, required this.opportunity, this.applicantCount});
+  const OpportunityCard({
+    super.key,
+    required this.opportunity,
+    this.applicantCount,
+    this.onEdit,
+    this.onToggleStatus,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -62,14 +67,37 @@ final class OpportunityCard extends ConsumerWidget {
                     ),
                     _StatusBadge(status: opportunity.status.name),
                     const Spacer(),
-                    GestureDetector(
-                      onTap: () => ref.read(bookmarkProvider.notifier).toggle(opportunity.id),
-                      child: Icon(
-                        isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                        color: isBookmarked ? AppColors.accent : AppColors.textTertiary,
-                        size: 22,
+                    if (onEdit != null || onToggleStatus != null)
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert, size: 20),
+                        color: AppColors.popupSurface,
+                        onSelected: (action) {
+                          if (action == 'edit') onEdit?.call();
+                          if (action == 'toggle') onToggleStatus?.call();
+                        },
+                        itemBuilder: (_) => [
+                          if (onEdit != null)
+                            const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                          if (onToggleStatus != null)
+                            PopupMenuItem(
+                              value: 'toggle',
+                              child: Text(
+                                opportunity.status == OpportunityStatus.open
+                                    ? 'Close posting'
+                                    : 'Reopen posting',
+                              ),
+                            ),
+                        ],
+                      )
+                    else
+                      GestureDetector(
+                        onTap: () => ref.read(bookmarkProvider.notifier).toggle(opportunity.id),
+                        child: Icon(
+                          isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                          color: isBookmarked ? AppColors.accent : AppColors.textTertiary,
+                          size: 22,
+                        ),
                       ),
-                    ),
                   ],
                 ),
                 if (opportunity.description.isNotEmpty) ...[
