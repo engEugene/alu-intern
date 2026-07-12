@@ -1,13 +1,11 @@
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/theme.dart';
 import '../../../../core/constants/firestore_constants.dart';
+import '../../../../core/utils/file_utils.dart';
 import '../../../../shared/models/startup_model.dart';
 import '../../../../shared/features/auth/providers/auth_provider.dart';
 
@@ -87,35 +85,16 @@ final class _StartupCreateScreenState extends ConsumerState<StartupCreateScreen>
     final file = _logoFile;
     if (file == null) {
       final url = _logoCtl.text.trim();
-
-    if (url.isNotEmpty && !url.startsWith('http')) return null;
-    return url.isEmpty ? null : url;
+      if (url.isNotEmpty && !url.startsWith('http')) return null;
+      return url.isEmpty ? null : url;
     }
 
     final bytes = file.bytes;
-    final path = file.path;
-    if (bytes == null && path == null) return null;
+    if (bytes == null) return null;
 
     final ext = file.extension ?? 'png';
-    final fileName = 'logo_${startupId}_${DateTime.now().millisecondsSinceEpoch}.$ext';
-    final ref = FirebaseStorage.instance
-        .ref()
-        .child('startups')
-        .child(startupId)
-        .child(fileName);
-
-    UploadTask uploadTask;
-    if (bytes != null) {
-      uploadTask = ref.putData(bytes, SettableMetadata(contentType: 'image/$ext'));
-    } else if (path != null) {
-      final fileObj = File(path);
-      uploadTask = ref.putFile(fileObj, SettableMetadata(contentType: 'image/$ext'));
-    } else {
-      return null;
-    }
-
-    final snapshot = await uploadTask;
-    return snapshot.ref.getDownloadURL();
+    final mimeType = ext == 'jpg' ? 'image/jpeg' : 'image/$ext';
+    return bytesToDataUri(bytes, mimeType);
   }
 
   Future<void> _submit() async {

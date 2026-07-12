@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme.dart';
 import '../../../../core/constants/firestore_constants.dart';
+import '../../../../core/utils/file_utils.dart';
 import '../../../../shared/widgets/error_widget.dart';
 import '../../../../shared/widgets/loading_shimmer.dart';
 import '../../../../shared/features/auth/providers/auth_provider.dart';
@@ -185,7 +186,9 @@ final class ApplicationDetailScreen extends ConsumerWidget {
 
   Widget _buildResumeSection(Map<String, dynamic> app) {
     final resumeUrl = app['resumeUrl'] as String?;
+    final resumeBase64 = app['resumeBase64'] as String?;
     final resumeName = app['resumeName'] as String? ?? 'Resume';
+    final hasResume = resumeUrl != null || resumeBase64 != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,7 +196,15 @@ final class ApplicationDetailScreen extends ConsumerWidget {
         Text('Resume / CV', style: AppTextStyles.titleXs),
         const SizedBox(height: 8),
         GestureDetector(
-          onTap: resumeUrl == null ? null : () => _openResume(resumeUrl),
+          onTap: !hasResume
+              ? null
+              : () {
+                  if (resumeBase64 != null) {
+                    openBase64Pdf(resumeBase64);
+                  } else if (resumeUrl != null) {
+                    _openResume(resumeUrl);
+                  }
+                },
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -225,13 +236,13 @@ final class ApplicationDetailScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        resumeUrl == null ? 'No resume attached' : 'Tap to view',
+                        !hasResume ? 'No resume attached' : 'Tap to view',
                         style: AppTextStyles.caption.copyWith(color: AppColors.textTertiary),
                       ),
                     ],
                   ),
                 ),
-                if (resumeUrl != null)
+                if (hasResume)
                   Icon(Icons.open_in_new, color: AppColors.accent, size: 18),
               ],
             ),

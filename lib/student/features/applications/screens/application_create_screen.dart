@@ -1,13 +1,11 @@
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme.dart';
 import '../../../../core/constants/firestore_constants.dart';
+import '../../../../core/utils/file_utils.dart';
 import '../../../../shared/features/auth/providers/auth_provider.dart';
 
 final class ApplicationCreateScreen extends ConsumerStatefulWidget {
@@ -47,11 +45,11 @@ final class _ApplicationCreateScreenState extends ConsumerState<ApplicationCreat
       if (result == null || result.files.isEmpty) return;
 
       final file = result.files.first;
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > 500 * 1024) {
         if (!mounted) return;
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(const SnackBar(content: Text('Resume must be smaller than 5MB')));
+          ..showSnackBar(const SnackBar(content: Text('Resume must be smaller than 500KB')));
         return;
       }
 
@@ -69,29 +67,9 @@ final class _ApplicationCreateScreenState extends ConsumerState<ApplicationCreat
     if (file == null) return null;
 
     final bytes = file.bytes;
-    final path = file.path;
-    if (bytes == null && path == null) return null;
+    if (bytes == null) return null;
 
-    final ext = file.extension ?? 'pdf';
-    final fileName = 'resume_${studentId}_${DateTime.now().millisecondsSinceEpoch}.$ext';
-    final ref = FirebaseStorage.instance
-        .ref()
-        .child('applications')
-        .child(widget.opportunityId)
-        .child(fileName);
-
-    UploadTask uploadTask;
-    if (bytes != null) {
-      uploadTask = ref.putData(bytes, SettableMetadata(contentType: 'application/pdf'));
-    } else if (path != null) {
-      final fileObj = File(path);
-      uploadTask = ref.putFile(fileObj, SettableMetadata(contentType: 'application/pdf'));
-    } else {
-      return null;
-    }
-
-    final snapshot = await uploadTask;
-    return snapshot.ref.getDownloadURL();
+    return bytesToDataUri(bytes, 'application/pdf');
   }
 
   Future<void> _submit() async {
@@ -115,7 +93,7 @@ final class _ApplicationCreateScreenState extends ConsumerState<ApplicationCreat
 
       final opportunityData = opportunityDoc.data();
 
-      final resumeUrl = await _uploadResume(user.uid);
+      final resumeDataUri = await _uploadResume(user.uid);
 
       await FirebaseFirestore.instance
           .collection(FirestoreConstants.applicationsCollection)
@@ -131,7 +109,7 @@ final class _ApplicationCreateScreenState extends ConsumerState<ApplicationCreat
             ? widget.opportunityTitle
             : opportunityData?['title'] ?? 'Opportunity',
         'coverLetter': _coverCtl.text.trim(),
-        'resumeUrl': resumeUrl,
+        'resumeBase64': resumeDataUri,
         'resumeName': _resumeFile!.name,
         'skills': user.skills,
         'status': 'pending',
@@ -220,7 +198,7 @@ final class _ApplicationCreateScreenState extends ConsumerState<ApplicationCreat
                 children: [
                   Icon(Icons.upload_file_outlined, color: AppColors.accent, size: 32),
                   const SizedBox(height: 8),
-                  Text('Upload resume (PDF, max 5MB)', style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
+                  Text('Upload resume (PDF, max 500KB)', style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
                 ],
               )
             : Row(

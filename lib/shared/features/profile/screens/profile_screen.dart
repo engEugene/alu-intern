@@ -1,11 +1,9 @@
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme.dart';
+import '../../../../core/utils/file_utils.dart';
 import '../../../../student/features/onboarding/providers/onboarding_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 
@@ -43,9 +41,7 @@ final class ProfileScreen extends ConsumerWidget {
               CircleAvatar(
                 radius: 48,
                 backgroundColor: AppColors.accent.withAlpha(30),
-                backgroundImage: (user?.photoUrl != null && user!.photoUrl!.isNotEmpty)
-                    ? NetworkImage(user.photoUrl!)
-                    : null,
+                backgroundImage: resolveImageProvider(user?.photoUrl),
                 child: (user?.photoUrl == null || user!.photoUrl!.isEmpty)
                     ? Icon(Icons.person, size: 48, color: AppColors.accent)
                     : null,
@@ -192,29 +188,11 @@ final class _ProfileEditSheetState extends ConsumerState<_ProfileEditSheet> {
     if (file == null) return null;
 
     final bytes = file.bytes;
-    final path = file.path;
-    if (bytes == null && path == null) return null;
+    if (bytes == null) return null;
 
     final ext = file.extension ?? 'png';
-    final fileName = 'avatar_${widget.user.uid}_${DateTime.now().millisecondsSinceEpoch}.$ext';
-    final ref = FirebaseStorage.instance
-        .ref()
-        .child('avatars')
-        .child(widget.user.uid)
-        .child(fileName);
-
-    UploadTask uploadTask;
-    if (bytes != null) {
-      uploadTask = ref.putData(bytes, SettableMetadata(contentType: 'image/$ext'));
-    } else if (path != null) {
-      final fileObj = File(path);
-      uploadTask = ref.putFile(fileObj, SettableMetadata(contentType: 'image/$ext'));
-    } else {
-      return null;
-    }
-
-    final snapshot = await uploadTask;
-    return snapshot.ref.getDownloadURL();
+    final mimeType = ext == 'jpg' ? 'image/jpeg' : 'image/$ext';
+    return bytesToDataUri(bytes, mimeType);
   }
 
   Future<void> _save() async {
@@ -292,12 +270,10 @@ final class _ProfileEditSheetState extends ConsumerState<_ProfileEditSheet> {
             CircleAvatar(
               radius: 28,
               backgroundColor: AppColors.accent.withAlpha(30),
-              backgroundImage: file != null && file.path != null
-                  ? FileImage(File(file.path!))
-                  : (existingUrl != null && existingUrl.isNotEmpty
-                      ? NetworkImage(existingUrl)
-                      : null),
-              child: (file == null || file.path == null) &&
+              backgroundImage: file != null && file.bytes != null
+                  ? MemoryImage(file.bytes!)
+                  : resolveImageProvider(existingUrl),
+              child: (file == null || file.bytes == null) &&
                       (existingUrl == null || existingUrl.isEmpty)
                   ? Icon(Icons.person, size: 28, color: AppColors.accent)
                   : null,
