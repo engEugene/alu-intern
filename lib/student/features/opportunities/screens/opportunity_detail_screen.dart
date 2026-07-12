@@ -22,7 +22,8 @@ final opportunityDetailProvider = FutureProvider.family<Opportunity?, String>((r
 
 final class OpportunityDetailScreen extends ConsumerWidget {
   final String id;
-  const OpportunityDetailScreen({super.key, required this.id});
+  final String? applicationStatus;
+  const OpportunityDetailScreen({super.key, required this.id, this.applicationStatus});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -138,30 +139,71 @@ final class OpportunityDetailScreen extends ConsumerWidget {
             decoration: BoxDecoration(
               border: Border(top: BorderSide(color: AppColors.divider)),
             ),
-            child: Row(
-              children: [
-                IconButton.filled(
-                  onPressed: () => ref.read(bookmarkProvider.notifier).toggle(opp.id),
-                  icon: Icon(isBookmarked ? Icons.bookmark : Icons.bookmark_border),
-                  style: IconButton.styleFrom(
-                    backgroundColor: isBookmarked ? AppColors.accent.withAlpha(30) : AppColors.card,
-                    foregroundColor: isBookmarked ? AppColors.accent : AppColors.textSecondary,
+            child: applicationStatus != null
+                ? _buildApplicationStatusBar(applicationStatus!)
+                : Row(
+                    children: [
+                      IconButton.filled(
+                        onPressed: () => ref.read(bookmarkProvider.notifier).toggle(opp.id),
+                        icon: Icon(isBookmarked ? Icons.bookmark : Icons.bookmark_border),
+                        style: IconButton.styleFrom(
+                          backgroundColor: isBookmarked ? AppColors.accent.withAlpha(30) : AppColors.card,
+                          foregroundColor: isBookmarked ? AppColors.accent : AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: user?.role.name == 'student'
+                              ? () => context.push('/opportunities/${opp.id}/apply')
+                              : null,
+                          child: Text(user?.role.name == 'student' ? 'Apply Now' : 'Sign in as student to apply'),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: user?.role.name == 'student'
-                        ? () => context.push('/opportunities/${opp.id}/apply')
-                        : null,
-                    child: Text(user?.role.name == 'student' ? 'Apply Now' : 'Sign in as student to apply'),
-                  ),
-                ),
-              ],
-            ),
           );
         },
       ),
+    );
+  }
+
+  Widget _buildApplicationStatusBar(String status) {
+    final (bg, text) = AppColors.statusColors(status);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: AppRadius.borderSm,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                status == 'accepted'
+                    ? Icons.check_circle_outline
+                    : status == 'rejected'
+                        ? Icons.cancel_outlined
+                        : Icons.access_time,
+                size: 18,
+                color: text,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                status == 'accepted'
+                    ? 'Application Accepted'
+                    : status == 'rejected'
+                        ? 'Application Rejected'
+                        : 'Application Pending',
+                style: AppTextStyles.labelSm.copyWith(color: text, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

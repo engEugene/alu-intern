@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme.dart';
 import '../../../../core/constants/firestore_constants.dart';
 import '../../../../shared/widgets/empty_state.dart';
@@ -28,11 +29,11 @@ final class ApplicationListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('My Applications')),
-      body: _buildBody(applications, ref),
+      body: _buildBody(applications, context),
     );
   }
 
-  Widget _buildBody(AsyncValue<List<Map<String, dynamic>>> applications, WidgetRef ref) {
+  Widget _buildBody(AsyncValue<List<Map<String, dynamic>>> applications, BuildContext context) {
     final data = applications.asData?.value;
     if (data != null) {
       if (data.isEmpty) {
@@ -49,41 +50,51 @@ final class ApplicationListScreen extends ConsumerWidget {
         itemBuilder: (_, i) {
           final app = data[i];
           final (bg, text) = AppColors.statusColors(app['status'] as String? ?? '');
+          final oppId = app['opportunityId'] as String?;
+          final status = app['status'] as String? ?? 'pending';
 
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              borderRadius: AppRadius.borderCard,
-              border: Border.all(color: AppColors.divider, width: 0.5),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(app['opportunityTitle'] as String? ?? 'Opportunity',
-                          style: AppTextStyles.titleXs),
-                      const SizedBox(height: 4),
-                      Text('Submitted ${_formatDate((app['createdAt'] as Timestamp?)?.toDate())}',
-                          style: AppTextStyles.caption.copyWith(color: AppColors.textTertiary)),
-                    ],
+          return GestureDetector(
+            onTap: oppId != null
+                ? () => context.push('/opportunities/$oppId?status=$status')
+                : null,
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: AppRadius.borderCard,
+                border: Border.all(color: AppColors.divider, width: 0.5),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(app['opportunityTitle'] as String? ?? 'Opportunity',
+                            style: AppTextStyles.titleXs),
+                        const SizedBox(height: 2),
+                        Text(app['startupName'] as String? ?? '',
+                            style: AppTextStyles.labelSm.copyWith(color: AppColors.textSecondary)),
+                        const SizedBox(height: 4),
+                        Text('Submitted ${_formatDate((app['createdAt'] as Timestamp?)?.toDate())}',
+                            style: AppTextStyles.caption.copyWith(color: AppColors.textTertiary)),
+                      ],
+                    ),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: bg,
-                    borderRadius: AppRadius.borderSm,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: bg,
+                      borderRadius: AppRadius.borderSm,
+                    ),
+                    child: Text(
+                      status.toUpperCase(),
+                      style: AppTextStyles.labelXsBold.copyWith(color: text),
+                    ),
                   ),
-                  child: Text(
-                    (app['status'] as String? ?? 'pending').toUpperCase(),
-                    style: AppTextStyles.labelXsBold.copyWith(color: text),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },

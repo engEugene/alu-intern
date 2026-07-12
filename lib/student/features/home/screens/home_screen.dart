@@ -203,23 +203,26 @@ final class HomeScreen extends ConsumerWidget {
   // ── Recommended Card ──
 
   Widget _buildRecommendedCard(BuildContext context, WidgetRef ref, Opportunity? opp) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.xxl),
-        gradient: AppColors.heroGradient,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.accent.withAlpha(20),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
+    return GestureDetector(
+      onTap: opp != null ? () => context.push('/opportunities/${opp.id}') : null,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.xxl),
+          gradient: AppColors.heroGradient,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.accent.withAlpha(20),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: opp != null
+            ? _RecommendedContent(opportunity: opp)
+            : _buildRecommendedFallback(),
       ),
-      child: opp != null
-          ? _RecommendedContent(opportunity: opp)
-          : _buildRecommendedFallback(),
     );
   }
 

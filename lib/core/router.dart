@@ -93,6 +93,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                         path: ':id',
                         builder: (_, state) => OpportunityDetailScreen(
                           id: state.pathParameters['id']!,
+                          applicationStatus: state.uri.queryParameters['status'],
                         ),
                         routes: [
                           GoRoute(
