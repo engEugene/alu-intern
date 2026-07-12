@@ -5,8 +5,12 @@ import '../models/opportunity_model.dart';
 
 final class OpportunityCard extends StatelessWidget {
   final Opportunity opportunity;
+  // When provided (startup context), shows an "Applicants: N" chip on the
+  // card. Null means we're either still loading the count or this card is
+  // rendered from the student context where applicant counts aren't relevant.
+  final int? applicantCount;
 
-  const OpportunityCard({super.key, required this.opportunity});
+  const OpportunityCard({super.key, required this.opportunity, this.applicantCount});
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +96,29 @@ final class OpportunityCard extends StatelessWidget {
                       ),
                       child: Text(s, style: AppTextStyles.labelXs.copyWith(color: AppColors.accent)),
                     )).toList(),
+                  ),
+                ],
+                if (applicantCount != null) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(
+                        applicantCount! > 0
+                            ? Icons.people_outline
+                            : Icons.group_off_outlined,
+                        size: 14,
+                        color: AppColors.textTertiary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        applicantCount! == 0
+                            ? 'No applicants yet'
+                            : (applicantCount == 1
+                                ? '1 applicant'
+                                : '$applicantCount applicants'),
+                        style: AppTextStyles.caption.copyWith(color: AppColors.textTertiary),
+                      ),
+                    ],
                   ),
                 ],
               ],

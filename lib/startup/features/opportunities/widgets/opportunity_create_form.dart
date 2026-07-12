@@ -6,6 +6,7 @@ import '../../../../core/constants/firestore_constants.dart';
 import '../../../../shared/models/opportunity_model.dart';
 import '../../../../shared/features/auth/providers/auth_provider.dart';
 import '../../../../student/features/onboarding/providers/onboarding_provider.dart';
+import '../../../features/startups/providers/startup_providers.dart';
 
 typedef OpportunityCreatedCallback = void Function();
 
@@ -47,22 +48,28 @@ final class _OpportunityCreateFormState extends ConsumerState<OpportunityCreateF
       final user = ref.read(authProvider).user;
       if (user == null) return;
 
+      final startup = await ref.read(currentStartupProvider.future);
+      final startupId = startup?.id ?? user.startupId ?? user.uid;
+
+      final oppMap = Opportunity(
+        id: '',
+        startupId: startupId,
+        startupName: startup?.name ?? user.displayName ?? '',
+        startupLogo: startup?.logo ?? user.photoUrl ?? '',
+        title: _titleCtl.text.trim(),
+        description: _descCtl.text.trim(),
+        type: _type,
+        duration: _durationCtl.text.trim(),
+        location: _locationCtl.text.trim(),
+        remote: _remote,
+        skills: _selectedSkills,
+        deadline: _deadline,
+      ).toMap();
+      oppMap['ownerId'] = user.uid;
+
       await FirebaseFirestore.instance
           .collection(FirestoreConstants.opportunitiesCollection)
-          .add(Opportunity(
-            id: '',
-            startupId: user.uid,
-            startupName: user.displayName ?? '',
-            startupLogo: user.photoUrl ?? '',
-            title: _titleCtl.text.trim(),
-            description: _descCtl.text.trim(),
-            type: _type,
-            duration: _durationCtl.text.trim(),
-            location: _locationCtl.text.trim(),
-            remote: _remote,
-            skills: _selectedSkills,
-            deadline: _deadline,
-          ).toMap());
+          .add(oppMap);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context)

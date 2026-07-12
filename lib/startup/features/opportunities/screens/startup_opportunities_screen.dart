@@ -66,6 +66,9 @@ final class StartupOpportunitiesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final opportunities = ref.watch(startupOpportunitiesProvider);
+    // Counts stream independently; we don't gate the whole screen on it so the
+    // list renders as soon as opportunities resolve and chips fill in live.
+    final counts = ref.watch(startupOpportunityApplicantCountsProvider).value ?? const {};
 
     return Scaffold(
       appBar: AppBar(title: const Text('Opportunities')),
@@ -120,7 +123,10 @@ final class StartupOpportunitiesScreen extends ConsumerWidget {
                   return ListView.builder(
                     padding: AppSpacing.screenH,
                     itemCount: list.length,
-                    itemBuilder: (_, i) => OpportunityCard(opportunity: list[i]),
+                    itemBuilder: (_, i) => OpportunityCard(
+                      opportunity: list[i],
+                      applicantCount: counts[list[i].id] ?? 0,
+                    ),
                   );
                 },
               ),

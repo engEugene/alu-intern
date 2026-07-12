@@ -9,21 +9,31 @@ final class LoadingShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: AppSpacing.screenPadding,
-      itemCount: itemCount,
-      itemBuilder: (_, __) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Container(
-          height: height,
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: AppRadius.borderCard,
-          ),
-          child: Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: AppColors.accent.withAlpha(60),
+    return ShaderMask(
+      shaderCallback: (bounds) {
+        return LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.card,
+            AppColors.surface,
+            AppColors.card,
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ).createShader(bounds);
+      },
+      child: ListView.builder(
+        padding: AppSpacing.screenPadding,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: itemCount,
+        itemBuilder: (_, _) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Container(
+            height: height,
+            decoration: BoxDecoration(
+              color: Colors.white, // replaced by the shader
+              borderRadius: AppRadius.borderCard,
             ),
           ),
         ),

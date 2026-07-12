@@ -12,6 +12,7 @@ import '../student/features/opportunities/screens/opportunity_list_screen.dart';
 import '../startup/features/opportunities/screens/startup_opportunities_screen.dart';
 import '../student/features/opportunities/screens/opportunity_detail_screen.dart';
 import '../startup/features/opportunities/screens/opportunity_create_screen.dart';
+import '../startup/features/applications/screens/startup_applicants_screen.dart';
 import '../student/features/applications/screens/application_list_screen.dart';
 import '../student/features/applications/screens/application_create_screen.dart';
 import '../student/features/applications/screens/application_detail_screen.dart';
@@ -116,7 +117,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (_, __) {
                   final role = authState.user?.role;
                   return switch (role) {
-                    UserRole.startup => const StartupOpportunitiesScreen(),
+                    UserRole.startup => const StartupApplicantsScreen(),
                     _ => const ApplicationListScreen(),
                   };
                 },
@@ -136,7 +137,11 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/bookmarks',
                 builder: (_, __) {
-                  return const BookmarkListScreen();
+                  final role = authState.user?.role;
+                  return switch (role) {
+                    UserRole.startup => const StartupOpportunitiesScreen(),
+                    _ => const BookmarkListScreen(),
+                  };
                 },
               ),
             ],

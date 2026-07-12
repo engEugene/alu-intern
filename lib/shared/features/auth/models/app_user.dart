@@ -9,6 +9,7 @@ final class AppUser {
   final String? displayName;
   final String? username;
   final String? photoUrl;
+  final String? startupId;
   final UserRole role;
   final List<String> skills;
   final bool onboardingComplete;
@@ -20,6 +21,7 @@ final class AppUser {
     this.displayName,
     this.username,
     this.photoUrl,
+    this.startupId,
     this.role = UserRole.student,
     this.skills = const [],
     this.onboardingComplete = false,
@@ -45,6 +47,7 @@ final class AppUser {
       displayName: map['fullname'] as String?,
       username: map['username'] as String?,
       photoUrl: map['avatar'] as String?,
+      startupId: map['startupId'] as String?,
       role: UserRole.values.firstWhere(
         (r) => r.name == map['role'],
         orElse: () => UserRole.student,
@@ -61,6 +64,7 @@ final class AppUser {
       'fullname': displayName,
       'username': username,
       'avatar': photoUrl,
+      'startupId': startupId,
       'role': role.name,
       'skills': skills,
       'onboardingComplete': onboardingComplete,

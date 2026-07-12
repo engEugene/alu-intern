@@ -4,29 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme.dart';
-import '../../../../core/constants/firestore_constants.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_widget.dart';
 import '../../../../shared/widgets/loading_shimmer.dart';
 import '../../../../shared/features/auth/providers/auth_provider.dart';
+import '../../startups/providers/startup_providers.dart';
 
 final startupApplicantsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
   final user = ref.watch(authProvider).user;
-  if (user == null) return const Stream.empty();
-
-  return FirebaseFirestore.instance
-      .collection(FirestoreConstants.applicationsCollection)
-      .where('startupId', isEqualTo: user.uid)
-      .snapshots()
-      .map((snap) {
-        final docs = snap.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
-        docs.sort((a, b) {
-          final aTime = (a['createdAt'] as Timestamp?)?.toDate() ?? DateTime(0);
-          final bTime = (b['createdAt'] as Timestamp?)?.toDate() ?? DateTime(0);
-          return bTime.compareTo(aTime);
-        });
-        return docs;
-      });
+  if (user == null) return Stream.value([]);
+  return startupApplicationsStream(user.uid, startupDocId: user.startupId);
 });
 
 final class StartupApplicantsScreen extends ConsumerWidget {
@@ -45,69 +32,137 @@ final class StartupApplicantsScreen extends ConsumerWidget {
           if (list.isEmpty) {
             return const EmptyState(
               icon: Icons.people_outline,
-              title: 'No applicants yet',
-              subtitle: 'Applicants will appear here once students apply to your opportunities',
+              title: 'No applicants found',
+              subtitle: 'Nobody has applied for any position at your organization yet',
             );
           }
 
+          final grouped = _groupByOpportunity(list);
+
           return ListView.builder(
             padding: AppSpacing.screenPadding,
-            itemCount: list.length,
+            itemCount: grouped.length,
             itemBuilder: (_, i) {
-              final app = list[i];
-              final (bg, text) = AppColors.statusColors(app['status'] as String? ?? '');
-
-              return GestureDetector(
-                onTap: () => context.push('/applications/${app['id']}'),
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: AppRadius.borderCard,
-                    border: Border.all(color: AppColors.divider, width: 0.5),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              app['studentName'] as String? ?? 'Applicant',
-                              style: AppTextStyles.titleXs,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              app['opportunityTitle'] as String? ?? 'Opportunity',
-                              style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Submitted ${_formatDate((app['createdAt'] as Timestamp?)?.toDate())}',
-                              style: AppTextStyles.caption.copyWith(color: AppColors.textTertiary),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: bg,
-                          borderRadius: AppRadius.borderSm,
-                        ),
-                        child: Text(
-                          (app['status'] as String? ?? 'pending').toUpperCase(),
-                          style: AppTextStyles.labelXsBold.copyWith(color: text),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              final section = grouped[i];
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _OpportunityHeader(title: section.title),
+                  const SizedBox(height: 8),
+                  ...section.applications.map((app) => _ApplicantCard(application: app)),
+                  const SizedBox(height: 24),
+                ],
               );
             },
           );
         },
+      ),
+    );
+  }
+
+  List<_OpportunitySection> _groupByOpportunity(List<Map<String, dynamic>> list) {
+    final map = <String, _OpportunitySection>{};
+    for (final app in list) {
+      final id = app['opportunityId'] as String? ?? '';
+      final title = app['opportunityTitle'] as String? ?? 'Opportunity';
+      map.putIfAbsent(id, () => _OpportunitySection(title: title, applications: []))
+          .applications
+          .add(app);
+    }
+    return map.values.toList();
+  }
+}
+
+final class _OpportunitySection {
+  final String title;
+  final List<Map<String, dynamic>> applications;
+
+  _OpportunitySection({required this.title, required this.applications});
+}
+
+final class _OpportunityHeader extends StatelessWidget {
+  final String title;
+
+  const _OpportunityHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(Icons.work_outline, size: 18, color: AppColors.accent),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            title,
+            style: AppTextStyles.titleSm.copyWith(color: AppColors.accent),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+final class _ApplicantCard extends StatelessWidget {
+  final Map<String, dynamic> application;
+
+  const _ApplicantCard({required this.application});
+
+  @override
+  Widget build(BuildContext context) {
+    final (bg, text) = AppColors.statusColors(application['status'] as String? ?? '');
+
+    return GestureDetector(
+      onTap: () => context.push('/applications/${application['id']}'),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: AppRadius.borderCard,
+          border: Border.all(color: AppColors.divider, width: 0.5),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: AppColors.accent.withAlpha(30),
+              child: Text(
+                (application['studentName'] as String? ?? 'A')[0].toUpperCase(),
+                style: AppTextStyles.labelSm.copyWith(color: AppColors.accent),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    application['studentName'] as String? ?? 'Applicant',
+                    style: AppTextStyles.titleXs,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Submitted ${_formatDate((application['createdAt'] as Timestamp?)?.toDate())}',
+                    style: AppTextStyles.caption.copyWith(color: AppColors.textTertiary),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: AppRadius.borderSm,
+              ),
+              child: Text(
+                (application['status'] as String? ?? 'pending').toUpperCase(),
+                style: AppTextStyles.labelXsBold.copyWith(color: text),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -25,7 +25,16 @@ final class VentureConnect extends ConsumerWidget {
       title: 'VentureConnect',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
-      routerConfig: router, 
+      routerConfig: router,
+      // The theme keeps Scaffolds transparent so the background gradient shows
+      // through. Paint it once here behind every route; without this the app
+      // renders pure black (the Scaffolds have nothing behind them).
+      builder: (context, child) {
+        return DecoratedBox(
+          decoration: BoxDecoration(gradient: AppColors.backgroundGradient),
+          child: child,
+        );
+      },
     );
   }
 }

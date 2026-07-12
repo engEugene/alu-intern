@@ -1,32 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme.dart';
-import '../../../../core/constants/firestore_constants.dart';
 import '../../../../shared/models/opportunity_model.dart';
 import '../../../../shared/widgets/loading_shimmer.dart';
 import '../../../../shared/widgets/error_widget.dart';
 import '../../../../shared/features/auth/providers/auth_provider.dart';
 import '../../opportunities/providers/opportunity_providers.dart';
+import '../../startups/providers/startup_providers.dart';
 
 final startupApplicationCountProvider = StreamProvider<int>((ref) {
-  final oppsAsync = ref.watch(startupOpportunitiesProvider);
-  final opps = oppsAsync.value ?? [];
-  if (opps.isEmpty) return Stream.value(0);
-
-  return Stream.fromFuture(() async {
-    int total = 0;
-    for (final o in opps) {
-      final r = await FirebaseFirestore.instance
-          .collection(FirestoreConstants.applicationsCollection)
-          .where('opportunityId', isEqualTo: o.id)
-          .count()
-          .get();
-      total += r.count ?? 0;
-    }
-    return total;
-  }());
+  final user = ref.watch(authProvider).user;
+  if (user == null) return Stream.value(0);
+  return startupApplicationsStream(user.uid, startupDocId: user.startupId).map((list) => list.length);
 });
 
 final class StartupDashboardScreen extends ConsumerWidget {

@@ -2,11 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme.dart';
 import '../../../../core/constants/firestore_constants.dart';
 import '../../../../shared/widgets/error_widget.dart';
 import '../../../../shared/widgets/loading_shimmer.dart';
+import '../../../../shared/features/auth/providers/auth_provider.dart';
 
 final applicationDetailProvider = FutureProvider.family<Map<String, dynamic>?, String>((ref, id) async {
   final doc = await FirebaseFirestore.instance
@@ -25,9 +27,11 @@ final class ApplicationDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final application = ref.watch(applicationDetailProvider(applicationId));
+    final user = ref.watch(authProvider).user;
+    final isStartup = user?.role == UserRole.startup;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Applicant')),
+      appBar: AppBar(title: Text(isStartup ? 'Applicant' : 'Application')),
       body: application.when(
         loading: () => const LoadingShimmer(),
         error: (_, __) => const AppErrorWidget(message: 'Failed to load applicant'),
@@ -52,6 +56,8 @@ final class ApplicationDetailScreen extends ConsumerWidget {
                   _buildSection('Email', app['studentEmail'] as String? ?? '-'),
                   const SizedBox(height: 16),
                   _buildSection('Cover Letter', app['coverLetter'] as String? ?? '-'),
+                  const SizedBox(height: 16),
+                  _buildResumeSection(app),
                   if ((app['skills'] as List?)?.isNotEmpty == true) ...[
                     const SizedBox(height: 16),
                     _buildSkillsSection(app['skills'] as List),
@@ -71,7 +77,8 @@ final class ApplicationDetailScreen extends ConsumerWidget {
         loading: () => null,
         error: (_, __) => null,
         data: (app) {
-          if (app == null) return const SizedBox.shrink();
+          if (app == null || !isStartup) return const SizedBox.shrink();
+
           final status = app['status'] as String? ?? 'pending';
           if (status == 'rejected') return const SizedBox.shrink();
 
@@ -176,6 +183,64 @@ final class ApplicationDetailScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildResumeSection(Map<String, dynamic> app) {
+    final resumeUrl = app['resumeUrl'] as String?;
+    final resumeName = app['resumeName'] as String? ?? 'Resume';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Resume / CV', style: AppTextStyles.titleXs),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: resumeUrl == null ? null : () => _openResume(resumeUrl),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: AppRadius.borderCard,
+              border: Border.all(color: AppColors.divider, width: 0.5),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentSubtle,
+                    borderRadius: AppRadius.borderSm,
+                  ),
+                  child: Icon(Icons.picture_as_pdf, color: AppColors.accent),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        resumeName,
+                        style: AppTextStyles.body,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        resumeUrl == null ? 'No resume attached' : 'Tap to view',
+                        style: AppTextStyles.caption.copyWith(color: AppColors.textTertiary),
+                      ),
+                    ],
+                  ),
+                ),
+                if (resumeUrl != null)
+                  Icon(Icons.open_in_new, color: AppColors.accent, size: 18),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSkillsSection(List skills) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -245,6 +310,14 @@ final class ApplicationDetailScreen extends ConsumerWidget {
   String _formatDate(DateTime? date) {
     if (date == null) return '';
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  Future<void> _openResume(String url) async {
+    final uri = Uri.parse(url);
+    final canLaunch = await canLaunchUrl(uri);
+    if (canLaunch) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   Future<void> _updateStatus(WidgetRef ref, BuildContext context, String id, String status) async {

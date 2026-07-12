@@ -19,7 +19,7 @@ final homeOpportunitiesProvider = StreamProvider<List<Opportunity>>((ref) {
 
 final applicationCountProvider = StreamProvider<int>((ref) {
   final user = ref.watch(authProvider).user;
-  if (user == null) return const Stream.empty();
+  if (user == null) return Stream.value(0);
   return FirebaseFirestore.instance
       .collection(FirestoreConstants.applicationsCollection)
       .where('studentId', isEqualTo: user.uid)

@@ -6,7 +6,7 @@ import '../../../../shared/models/opportunity_model.dart';
 
 final bookmarkIdsProvider = StreamProvider<List<String>>((ref) {
   final user = ref.watch(authProvider).user;
-  if (user == null) return const Stream.empty();
+  if (user == null) return Stream.value([]);
 
   return FirebaseFirestore.instance
       .collection(FirestoreConstants.bookmarksCollection)

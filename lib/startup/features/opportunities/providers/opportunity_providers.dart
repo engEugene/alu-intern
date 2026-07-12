@@ -3,14 +3,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/constants/firestore_constants.dart';
 import '../../../../shared/models/opportunity_model.dart';
 import '../../../../shared/features/auth/providers/auth_provider.dart';
+import '../../startups/providers/startup_providers.dart';
 
-final startupOpportunitiesProvider = StreamProvider<List<Opportunity>>((ref) {
-  final user = ref.watch(authProvider).user;
-  if (user == null) return const Stream.empty();
+final startupOpportunitiesProvider = StreamProvider<List<Opportunity>>((ref) async* {
+  final startupIds = await resolveStartupIds(ref);
+  if (startupIds.isEmpty) {
+    yield [];
+    return;
+  }
 
-  return FirebaseFirestore.instance
+  yield* FirebaseFirestore.instance
       .collection(FirestoreConstants.opportunitiesCollection)
-      .where('startupId', isEqualTo: user.uid)
+      .where('startupId', whereIn: startupIds.toList())
       .snapshots()
       .map((snap) {
         final opportunities = snap.docs
@@ -23,4 +27,18 @@ final startupOpportunitiesProvider = StreamProvider<List<Opportunity>>((ref) {
         });
         return opportunities;
       });
+});
+
+final startupOpportunityApplicantCountsProvider =
+    StreamProvider<Map<String, int>>((ref) {
+  final user = ref.watch(authProvider).user;
+  if (user == null) return Stream.value({});
+  return startupApplicationsStream(user.uid, startupDocId: user.startupId).map((list) {
+    final counts = <String, int>{};
+    for (final app in list) {
+      final oppId = app['opportunityId'] as String? ?? '';
+      if (oppId.isNotEmpty) counts[oppId] = (counts[oppId] ?? 0) + 1;
+    }
+    return counts;
+  });
 });

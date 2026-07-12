@@ -69,6 +69,7 @@ List<_TabItem> _tabsForRole(UserRole role) {
     UserRole.startup => const [
       _TabItem('Dashboard', Icons.dashboard_outlined, Icons.dashboard),
       _TabItem('Opportunities', Icons.work_outline, Icons.work),
+      _TabItem('Applicants', Icons.people_outline, Icons.people),
       _TabItem('Profile', Icons.business_outlined, Icons.business),
     ],
     UserRole.admin => const [
@@ -88,7 +89,8 @@ List<_TabItem> _tabsForRole(UserRole role) {
 
 int _branchIndexForTab(UserRole role, int tabIndex) {
   return switch (role) {
-    UserRole.startup => const [0, 1, 3][tabIndex],
+    // Dashboard, Opportunities, Applicants, Profile
+    UserRole.startup => const [0, 2, 1, 3][tabIndex],
     _ => tabIndex,
   };
 }
@@ -97,8 +99,9 @@ int _tabIndexForBranch(UserRole role, int branchIndex) {
   return switch (role) {
     UserRole.startup => switch (branchIndex) {
         0 => 0,
-        1 => 1,
-        3 => 2,
+        2 => 1,
+        1 => 2,
+        3 => 3,
         _ => 0,
       },
     _ => branchIndex,

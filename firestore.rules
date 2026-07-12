@@ -20,13 +20,30 @@ service cloud.firestore {
     }
 
     match /applications/{applicationId} {
+      function isStartupOwnerByStartupId(userId, startupId) {
+        return exists(/databases/$(database)/documents/startups/$(startupId))
+          && get(/databases/$(database)/documents/startups/$(startupId)).data.ownerId == userId;
+      }
+
       allow read: if request.auth != null
-        && (request.auth.uid == resource.data.studentId
-          || request.auth.uid == resource.data.ownerId);
+        && (
+          request.auth.uid == resource.data.studentId
+          || request.auth.uid == resource.data.ownerId
+          || resource.data.startupId == request.auth.uid
+          || (resource.data.startupId is string
+            && resource.data.startupId != ""
+            && isStartupOwnerByStartupId(request.auth.uid, resource.data.startupId))
+        );
       allow create: if request.auth != null;
       allow update: if request.auth != null
-        && (request.auth.uid == resource.data.studentId
-          || request.auth.uid == resource.data.ownerId);
+        && (
+          request.auth.uid == resource.data.studentId
+          || request.auth.uid == resource.data.ownerId
+          || resource.data.startupId == request.auth.uid
+          || (resource.data.startupId is string
+            && resource.data.startupId != ""
+            && isStartupOwnerByStartupId(request.auth.uid, resource.data.startupId))
+        );
     }
 
     match /bookmarks/{bookmarkId} {
