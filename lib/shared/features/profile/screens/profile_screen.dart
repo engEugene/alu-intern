@@ -1,3 +1,7 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -39,7 +43,12 @@ final class ProfileScreen extends ConsumerWidget {
               CircleAvatar(
                 radius: 48,
                 backgroundColor: AppColors.accent.withAlpha(30),
-                child: Icon(Icons.person, size: 48, color: AppColors.accent),
+                backgroundImage: (user?.photoUrl != null && user!.photoUrl!.isNotEmpty)
+                    ? NetworkImage(user.photoUrl!)
+                    : null,
+                child: (user?.photoUrl == null || user!.photoUrl!.isEmpty)
+                    ? Icon(Icons.person, size: 48, color: AppColors.accent)
+                    : null,
               ),
               const SizedBox(height: 16),
               Text(user?.displayName ?? 'User', style: AppTextStyles.headingSm),
@@ -127,6 +136,7 @@ final class _ProfileEditSheetState extends ConsumerState<_ProfileEditSheet> {
   late final TextEditingController _avatarCtl;
   late List<String> _selectedSkills;
   final _newSkillCtl = TextEditingController();
+  PlatformFile? _avatarFile;
   bool _loading = false;
 
   @override
@@ -147,14 +157,82 @@ final class _ProfileEditSheetState extends ConsumerState<_ProfileEditSheet> {
     super.dispose();
   }
 
+  Future<void> _pickAvatar() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.first;
+      if (file.size > 3 * 1024 * 1024) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(content: Text('Image must be smaller than 3MB')));
+        return;
+      }
+
+      setState(() {
+        _avatarFile = file;
+        _avatarCtl.text = file.name;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
+    }
+  }
+
+  Future<String?> _uploadAvatar() async {
+    final file = _avatarFile;
+    if (file == null) return null;
+
+    final bytes = file.bytes;
+    final path = file.path;
+    if (bytes == null && path == null) return null;
+
+    final ext = file.extension ?? 'png';
+    final fileName = 'avatar_${widget.user.uid}_${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child('avatars')
+        .child(widget.user.uid)
+        .child(fileName);
+
+    UploadTask uploadTask;
+    if (bytes != null) {
+      uploadTask = ref.putData(bytes, SettableMetadata(contentType: 'image/$ext'));
+    } else if (path != null) {
+      final fileObj = File(path);
+      uploadTask = ref.putFile(fileObj, SettableMetadata(contentType: 'image/$ext'));
+    } else {
+      return null;
+    }
+
+    final snapshot = await uploadTask;
+    return snapshot.ref.getDownloadURL();
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
+      String? avatarUrl;
+      if (_avatarFile != null) {
+        avatarUrl = await _uploadAvatar();
+      } else {
+        final url = _avatarCtl.text.trim();
+        avatarUrl = url.isEmpty ? null : url;
+      }
+
       await ref.read(authProvider.notifier).updateUserInFirestore({
         'fullname': _nameCtl.text.trim(),
         'username': _usernameCtl.text.trim(),
-        'avatar': _avatarCtl.text.trim(),
+        'avatar': avatarUrl,
         'skills': _selectedSkills,
       });
 
@@ -193,6 +271,61 @@ final class _ProfileEditSheetState extends ConsumerState<_ProfileEditSheet> {
       _newSkillCtl.clear();
     });
     addSkillToFirestore(skill);
+  }
+
+  Widget _buildAvatarPicker() {
+    final file = _avatarFile;
+    final existingUrl = widget.user.photoUrl;
+
+    return GestureDetector(
+      onTap: _loading ? null : _pickAvatar,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: AppRadius.borderCard,
+          border: Border.all(color: AppColors.divider, width: 0.5),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: AppColors.accent.withAlpha(30),
+              backgroundImage: file != null && file.path != null
+                  ? FileImage(File(file.path!))
+                  : (existingUrl != null && existingUrl.isNotEmpty
+                      ? NetworkImage(existingUrl)
+                      : null),
+              child: (file == null || file.path == null) &&
+                      (existingUrl == null || existingUrl.isEmpty)
+                  ? Icon(Icons.person, size: 28, color: AppColors.accent)
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    file != null ? file.name : 'Tap to upload avatar',
+                    style: AppTextStyles.body,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    file != null ? 'Tap to change' : 'PNG/JPG, max 3MB',
+                    style: AppTextStyles.caption.copyWith(color: AppColors.textTertiary),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.upload_file_outlined, color: AppColors.accent, size: 24),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -253,15 +386,21 @@ final class _ProfileEditSheetState extends ConsumerState<_ProfileEditSheet> {
                           ),
                         ),
                         const SizedBox(height: 16),
+                        Text('Avatar', style: AppTextStyles.titleXs),
+                        const SizedBox(height: 8),
+                        _buildAvatarPicker(),
+                        const SizedBox(height: 12),
                         TextFormField(
                           controller: _avatarCtl,
+                          enabled: _avatarFile == null,
                           textInputAction: TextInputAction.done,
                           keyboardType: TextInputType.url,
                           decoration: const InputDecoration(
-                            labelText: 'Avatar URL (optional)',
-                            prefixIcon: Icon(Icons.image_outlined),
+                            labelText: 'Or paste avatar URL',
+                            prefixIcon: Icon(Icons.link),
                             hintText: 'https://example.com/avatar.png',
                           ),
+                          onChanged: (_) => setState(() {}),
                         ),
                         const SizedBox(height: 24),
                         Text('Skills (max 10)', style: AppTextStyles.titleXs),
