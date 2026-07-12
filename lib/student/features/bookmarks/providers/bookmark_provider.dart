@@ -30,17 +30,9 @@ final bookmarkedOpportunitiesProvider = StreamProvider<List<Opportunity>>((ref) 
           .toList());
 });
 
-final isBookmarkedProvider = FutureProvider.family<bool, String>((ref, oppId) async {
-  final user = ref.watch(authProvider).user;
-  if (user == null) return false;
-
-  final snap = await FirebaseFirestore.instance
-      .collection(FirestoreConstants.bookmarksCollection)
-      .where('userId', isEqualTo: user.uid)
-      .where('opportunityId', isEqualTo: oppId)
-      .get();
-
-  return snap.docs.isNotEmpty;
+final isBookmarkedProvider = Provider.family<bool, String>((ref, oppId) {
+  final ids = ref.watch(bookmarkIdsProvider).value ?? [];
+  return ids.contains(oppId);
 });
 
 final class BookmarkNotifier extends Notifier<void> {
@@ -68,6 +60,8 @@ final class BookmarkNotifier extends Notifier<void> {
         'createdAt': FieldValue.serverTimestamp(),
       });
     }
+
+    ref.invalidate(bookmarkIdsProvider);
   }
 }
 

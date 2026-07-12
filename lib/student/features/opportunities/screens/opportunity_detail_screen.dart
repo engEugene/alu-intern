@@ -29,7 +29,7 @@ final class OpportunityDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final opportunity = ref.watch(opportunityDetailProvider(id));
     final user = ref.watch(authProvider).user;
-    final isBookmarked = ref.watch(isBookmarkedProvider(id)).value ?? false;
+    final isBookmarked = ref.watch(isBookmarkedProvider(id));
 
     return Scaffold(
       appBar: AppBarWidget(title: 'Opportunity'),

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
+import '../../student/features/bookmarks/providers/bookmark_provider.dart';
 import '../models/opportunity_model.dart';
 
-final class OpportunityCard extends StatelessWidget {
+final class OpportunityCard extends ConsumerWidget {
   final Opportunity opportunity;
   // When provided (startup context), shows an "Applicants: N" chip on the
   // card. Null means we're either still loading the count or this card is
@@ -13,7 +15,8 @@ final class OpportunityCard extends StatelessWidget {
   const OpportunityCard({super.key, required this.opportunity, this.applicantCount});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isBookmarked = ref.watch(isBookmarkedProvider(opportunity.id));
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GestureDetector(
@@ -58,6 +61,15 @@ final class OpportunityCard extends StatelessWidget {
                       ),
                     ),
                     _StatusBadge(status: opportunity.status.name),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => ref.read(bookmarkProvider.notifier).toggle(opportunity.id),
+                      child: Icon(
+                        isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                        color: isBookmarked ? AppColors.accent : AppColors.textTertiary,
+                        size: 22,
+                      ),
+                    ),
                   ],
                 ),
                 if (opportunity.description.isNotEmpty) ...[

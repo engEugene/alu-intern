@@ -6,6 +6,7 @@ import '../../../../core/theme.dart';
 import '../../../../core/constants/firestore_constants.dart';
 import '../../../../shared/models/opportunity_model.dart';
 import '../../../../shared/features/auth/providers/auth_provider.dart';
+import '../../bookmarks/providers/bookmark_provider.dart';
 
 final homeOpportunitiesProvider = StreamProvider<List<Opportunity>>((ref) {
   return FirebaseFirestore.instance
@@ -52,10 +53,6 @@ final class HomeScreen extends ConsumerWidget {
                 _buildSectionTitle('Recommended', actionText: 'See all', onAction: () => context.go('/opportunities')),
                 const SizedBox(height: 16),
                 _buildRecommendedCard(context, ref, opps.isNotEmpty ? opps.first : null),
-                const SizedBox(height: 30),
-                _buildSectionTitle('Browse by category'),
-                const SizedBox(height: 16),
-                _buildCategoryList(context),
                 const SizedBox(height: 30),
                 _buildSectionTitle('Recent opportunities', actionText: 'See all', onAction: () => context.go('/opportunities')),
                 const SizedBox(height: 16),
@@ -257,49 +254,6 @@ final class HomeScreen extends ConsumerWidget {
     );
   }
 
-  // ── Category List ──
-
-  Widget _buildCategoryList(BuildContext context) {
-    final categories = [
-      {'icon': Icons.palette_outlined, 'label': 'Design', 'color': const Color(0xFF1A2E1E)},
-      {'icon': Icons.code_outlined, 'label': 'Engineering', 'color': const Color(0xFF142218)},
-      {'icon': Icons.campaign_outlined, 'label': 'Marketing', 'color': const Color(0xFF1E2818)},
-      {'icon': Icons.bar_chart_outlined, 'label': 'Data', 'color': const Color(0xFF18221E)},
-      {'icon': Icons.more_horiz, 'label': 'Other', 'color': const Color(0xFF1A1A1A)},
-    ];
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: categories.map((cat) {
-          final color = cat['color'] as Color;
-          final icon = cat['icon'] as IconData;
-          final label = cat['label'] as String;
-          return Padding(
-            padding: const EdgeInsets.only(right: 20),
-            child: GestureDetector(
-              onTap: () => context.go('/opportunities'),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(icon, color: AppColors.textPrimary, size: 24),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(label, style: AppTextStyles.labelSm.copyWith(color: AppColors.textSecondary)),
-                ],
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
   // ── Recent List ──
 
   Widget _buildRecentList(BuildContext context, WidgetRef ref, List<Opportunity> list) {
@@ -319,11 +273,12 @@ final class HomeScreen extends ConsumerWidget {
     }
 
     return Column(
-      children: list.take(3).map((opp) => _buildRecentItem(context, opp)).toList(),
+      children: list.take(3).map((opp) => _buildRecentItem(context, ref, opp)).toList(),
     );
   }
 
-  Widget _buildRecentItem(BuildContext context, Opportunity opp) {
+  Widget _buildRecentItem(BuildContext context, WidgetRef ref, Opportunity opp) {
+    final isBookmarked = ref.watch(isBookmarkedProvider(opp.id));
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GestureDetector(
@@ -377,7 +332,14 @@ final class HomeScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              Icon(Icons.bookmark_border, color: AppColors.textTertiary, size: 20),
+              GestureDetector(
+                onTap: () => ref.read(bookmarkProvider.notifier).toggle(opp.id),
+                child: Icon(
+                  isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                  color: isBookmarked ? AppColors.accent : AppColors.textTertiary,
+                  size: 22,
+                ),
+              ),
             ],
           ),
         ),
@@ -401,12 +363,13 @@ final class HomeScreen extends ConsumerWidget {
 
 // ── Reusable Sub-widgets ──
 
-final class _RecommendedContent extends StatelessWidget {
+final class _RecommendedContent extends ConsumerWidget {
   final Opportunity opportunity;
   const _RecommendedContent({required this.opportunity});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isBookmarked = ref.watch(isBookmarkedProvider(opportunity.id));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -439,14 +402,18 @@ final class _RecommendedContent extends StatelessWidget {
               ),
             ),
             GestureDetector(
-              onTap: () {},
+              onTap: () => ref.read(bookmarkProvider.notifier).toggle(opportunity.id),
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: AppColors.card.withAlpha(120),
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
-                child: Icon(Icons.bookmark_border, color: AppColors.accent, size: 20),
+                child: Icon(
+                  isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                  color: AppColors.accent,
+                  size: 20,
+                ),
               ),
             ),
           ],
